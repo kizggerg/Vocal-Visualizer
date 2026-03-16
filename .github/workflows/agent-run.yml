@@ -20,6 +20,7 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
+      id-token: write  # Required by claude-code-action for OIDC authentication
     steps:
       - uses: actions/checkout@v4
         with:
