@@ -78,6 +78,38 @@ This repo is configured with agents and skills that simulate a small software de
 | `/code-review [target]` | Quality + security + test coverage review of code changes |
 | `/design-review [feature]` | UX, accessibility, consistency, and feasibility review |
 | `/security-review [target]` | Threat model + code analysis + dependency scan |
+| `/approve-gate [gate] [approve/reject]` | Human approves or rejects an SDLC gate checkpoint |
+
+## Async / Overnight Execution
+
+Full model: `docs/architecture/async-execution-model.md`
+
+**Every session starts by reading `docs/gates/CURRENT_STATE.md`** to determine where work left off.
+
+Three human checkpoints where agents stop and wait:
+- **HC-1** (after requirements) — agent creates GitHub Issue with `human-checkpoint` label
+- **HC-2** (after design/architecture) — agent creates GitHub Issue with `human-checkpoint` label
+- **HC-3** (after validation) — agent creates GitHub Issue + PR for review
+
+Biggest overnight win: after HC-2 approval, agents autonomously run Phases 3-6 (test planning → implementation → review → validation).
+
+Human approves via `/approve-gate` or by editing gate files directly.
+
+## Security
+
+- **Secrets:** See `docs/security/threat-models/TM-001-secrets-management.md`
+- **Requirements:** See `docs/security/requirements/SR-secrets-management.md`
+- AWS auth: OIDC federation for CI/CD, IAM execution roles for production, no long-lived keys
+- Cloud agents: NO production credentials. Agents work through GitHub Actions for deploys.
+- Secret scanning + push protection enabled on the repo
+- All merges to `main` require PR approval (branch protection enforced)
+
+## Branching
+
+Convention: `<type>/<short-description>` — see `docs/architecture/standards/branching.md`
+- Types: `feat/`, `fix/`, `chore/`, `docs/`, `infra/`, `test/`, `spike/`
+- Squash merge only, branches auto-deleted after merge
+- Enforced by CI (`scripts/validate-branch-name.sh`) and branch protection
 
 ### Documentation Conventions
 
