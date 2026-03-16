@@ -1,0 +1,39 @@
+name: Agent Run
+
+# Trigger manually from GitHub UI or API, or on schedule
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: "Task for the agent (e.g., 'Continue working on the current SDLC phase')"
+        required: true
+        type: string
+      branch:
+        description: "Branch to work on (leave empty to auto-detect from CURRENT_STATE.md)"
+        required: false
+        type: string
+
+jobs:
+  agent-run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || github.ref }}
+          fetch-depth: 0
+
+      - name: Run Claude Code Agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          prompt: |
+            Read docs/gates/CURRENT_STATE.md to understand where we are in the SDLC.
+            Read docs/architecture/async-execution-model.md for the session protocol.
+            Then: ${{ inputs.prompt }}
+          allowed_tools: "Bash,Read,Edit,Write,Glob,Grep,WebFetch,WebSearch,Agent"
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
