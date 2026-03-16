@@ -30,10 +30,9 @@ jobs:
       - name: Run Claude Code Agent
         uses: anthropics/claude-code-action@v1
         with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             If docs/gates/CURRENT_STATE.md exists, read it to understand where we are in the SDLC.
             If docs/architecture/async-execution-model.md exists, read it for the session protocol.
             If either file is missing, proceed with the task directly.
             Then: ${{ inputs.prompt }}
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
