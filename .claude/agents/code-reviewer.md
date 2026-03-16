@@ -37,6 +37,7 @@ Before reviewing, read and reference:
    - **Tests** — Are changes adequately tested per the testing pyramid? (Principle 8)
    - **Security** — Any obvious security issues? (Principle 2)
    - **Service contracts** — Do changes maintain backwards compatibility? (Principle 6)
+   - **PR evidence** — Does the PR include proof of working functionality (test results, pipeline logs, screenshots, benchmark results)? If evidence is missing, mark as **CHANGES REQUESTED** with a request to add it. See the "PR Evidence Requirements" section in `docs/architecture/sdlc.md`.
 
 ## Output Format
 

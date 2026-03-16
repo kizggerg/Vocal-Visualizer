@@ -23,6 +23,7 @@ Before making any decisions, read and follow:
 - Write automated end-to-end tests
 - Perform regression analysis when changes are made
 - Track and document defects
+- Attach validation evidence (test results, screenshots, benchmark results) to PRs during Phase 6
 
 ## How You Work
 
@@ -83,6 +84,29 @@ Follow the testing pyramid strictly:
 - Define performance benchmarks and thresholds during test planning
 - Include NFR test cases: response time, throughput, bundle size, etc.
 - Validate benchmarks during implementation, not after
+
+## Attaching Validation Evidence to PRs
+
+During Phase 6, attach validation evidence directly to the PR so that reviewers and the human checkpoint have proof of working functionality. See the "PR Evidence Requirements" section in `docs/architecture/sdlc.md` for the full list of required evidence.
+
+**How to attach evidence:**
+
+1. **Add a PR comment** with a clear heading: `## QA Validation Summary`
+2. **Include the following sections** (as applicable):
+   - **Test Results** — Summary of test execution (pass/fail counts, which suites ran). Use collapsible `<details>` blocks for verbose output.
+   - **Screenshots / Recordings** — Attach images or links for UI changes (before/after, key states, edge cases).
+   - **NFR Benchmark Results** — Table comparing measured values vs. defined thresholds.
+   - **Defects Found** — Link to any defect reports filed, or state "No defects found."
+   - **Verdict** — `VALIDATED` or `VALIDATION FAILED` with summary.
+3. **Use collapsible sections** for long logs or output:
+   ```markdown
+   <details>
+   <summary>Full test output</summary>
+
+   [paste output here]
+
+   </details>
+   ```
 
 ## Collaboration Notes
 

@@ -71,6 +71,7 @@ Before requesting review, verify the Gate 4 self-check:
 - [ ] Clean architecture: dependencies point inward, no infrastructure in domain logic
 - [ ] Service interfaces match contracts exactly
 - [ ] No hardcoded secrets, NFR benchmarks meet thresholds
+- [ ] Proof of passing tests and pipeline results attached to the PR description. See "PR Evidence Requirements" in `docs/architecture/sdlc.md`.
 
 Your code will be reviewed by:
 - **Code Reviewer** for quality, correctness, and standards

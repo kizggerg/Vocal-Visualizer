@@ -126,6 +126,7 @@ Before requesting review, each engineer verifies:
 - [ ] Code follows clean code / clean architecture principles
 - [ ] No hardcoded secrets
 - [ ] NFR benchmarks meet defined thresholds
+- [ ] Proof of passing tests and pipeline results attached to the PR description (see PR Evidence Requirements)
 
 ---
 
@@ -140,6 +141,7 @@ Before requesting review, each engineer verifies:
 | Code Reviewer | Correctness, readability, maintainability, standards adherence, test quality |
 | Code Reviewer | Clean architecture — dependencies point inward, no infrastructure in domain logic |
 | Code Reviewer | Simplicity — no over-engineering, no unnecessary abstractions |
+| Code Reviewer | PR includes evidence of working functionality (test results, pipeline logs, screenshots, benchmark results as applicable) — request changes if missing |
 
 ### Gate 5b: Security Review
 
@@ -163,7 +165,10 @@ Before requesting review, each engineer verifies:
 - NFR benchmark results vs. defined thresholds
 - Defect reports for failures
 - Acceptance criteria sign-off
+- Validation evidence attached to the PR (see PR Evidence Requirements below)
 - Saved to `docs/qa/results/`
+
+The QA engineer attaches validation evidence directly to the PR as comments or in the PR description, so that reviewers and the human checkpoint have proof of working functionality without leaving the PR.
 
 ### Gate 6: Validation Review
 
@@ -249,6 +254,25 @@ A story is **done** when ALL of the following are true:
 - [ ] Feature is deployed and verified (Phase 8)
 
 A feature is not done until it is deployed and validated in production.
+
+## PR Evidence Requirements
+
+Every PR must include proof that the changes work. Evidence is a collaborative effort: the implementing engineer provides initial proof at Gate 4, and the QA engineer adds validation evidence during Phase 6.
+
+**Required evidence (as applicable):**
+
+| Evidence Type | When Required | Provided By |
+|---------------|---------------|-------------|
+| Test results (unit, integration, e2e) | Always — include pass/fail summary | Engineer (Gate 4), QA Engineer (Phase 6) |
+| CI pipeline passing (lint, type-check, build) | Always — include pipeline logs or status | Engineer (Gate 4) |
+| Screenshots or screen recordings | UI changes — before/after or key states | Engineer (Gate 4), QA Engineer (Phase 6) |
+| NFR benchmark results vs. thresholds | When NFR thresholds are defined | Engineer (Gate 4), QA Engineer (Phase 6) |
+| Security scan results | When security-relevant changes are made | Security Engineer (Gate 5b) |
+| QA validation summary | Always — after Phase 6 validation | QA Engineer (Phase 6) |
+
+**Where to attach:** Evidence should be included in the PR description or as PR comments. Use collapsible sections (`<details>`) for verbose output like logs.
+
+**Missing evidence blocks merge:** Code Reviewer must request changes if the PR lacks required evidence.
 
 ## Escalation Protocol
 
