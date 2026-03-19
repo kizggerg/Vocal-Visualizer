@@ -71,8 +71,7 @@ vocal-visualizer/
 |-- tsconfig.node.json               # TypeScript config for Vite config file
 |-- vite.config.ts
 |-- vitest.config.ts                 # Or vitest section in vite.config.ts
-|-- .eslintrc.cjs                    # Linting configuration
-|-- .prettierrc                      # Formatting configuration
+|-- biome.json                       # Linting and formatting configuration (Biome)
 |-- .gitignore
 |-- README.md
 ```
