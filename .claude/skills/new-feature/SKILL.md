@@ -34,12 +34,22 @@ Run these reviews concurrently:
 
 Each reviewer saves feedback. If there are critical issues, cycle back to the product owner to revise.
 
+#### Gate 1 Reconciliation
+
+After all reviews complete, run reconciliation before presenting to the human:
+
+1. **Collect** all reviewer outputs
+2. **Identify conflicts** between agents (e.g., architect says feasible as-is, security says additional requirements needed)
+3. **Cross-pollinate** — share conflicting positions with the relevant agents, ask each to respond to the other's concern
+4. **Converge** on a unified recommendation using ADR-001 principles as tiebreaker
+5. **Product Owner scope check** — ask the **product-owner** agent to review for scope creep and reject unnecessary additions
+6. **Produce a consolidated Gate 1 summary** saved to `docs/gates/sprint-N-gate-1-requirements-consolidated.md`
+
 #### Human Checkpoint 1
 
 **STOP and present to the human:**
-- Summary of user stories and acceptance criteria
-- NFRs and performance targets
-- Any reviewer concerns or open questions
+- The consolidated summary (one coherent recommendation, not separate reviews)
+- Any unresolved agent disagreements with both positions and trade-offs
 - Ask: "Do you approve these requirements to proceed to design & architecture?"
 
 **Do not proceed until the human approves.**
@@ -79,14 +89,22 @@ Run these reviews concurrently:
 
 Each reviewer saves feedback. Cycle back to resolve critical issues.
 
+#### Gate 2 Reconciliation
+
+After all reviews complete, run reconciliation:
+
+1. **Collect** all reviewer outputs (architecture, design, threat model, cross-reviews)
+2. **Identify conflicts** (e.g., architect recommends client-side only but security requires server-side validation)
+3. **Cross-pollinate** — share conflicts between agents, require concrete counter-proposals
+4. **Converge** on unified architecture + design + security posture using ADR-001 as tiebreaker
+5. **Product Owner scope check** — ask the **product-owner** agent to reject scope creep (premature infrastructure, unnecessary abstractions, tech debt not tied to user stories)
+6. **Produce a consolidated Gate 2 summary** saved to `docs/gates/sprint-N-gate-2-architecture-consolidated.md`
+
 #### Human Checkpoint 2
 
 **STOP and present to the human:**
-- Technology selections with trade-offs
-- Service interface contracts
-- Architecture diagrams/decisions
-- Design direction and key screens
-- Threat model and residual risks
+- The consolidated summary (unified recommendation, not separate reviews)
+- Any unresolved disagreements with both positions and trade-offs
 - Ask: "Do you approve these technical choices to proceed to implementation?"
 
 **Do not proceed until the human approves.**
@@ -180,10 +198,20 @@ Use the **qa-engineer** agent to:
 - **product-owner** agent: Verify acceptance criteria met, feature behaves as intended
 - **architect** agent: Verify NFR benchmarks meet thresholds
 
+#### Gate 6 Reconciliation
+
+After validation reviews complete, run reconciliation:
+
+1. **Collect** QA results, Product Owner acceptance, Architect NFR assessment
+2. **Identify conflicts** (e.g., tests pass but NFR regression flagged)
+3. **Converge** on a unified ship/no-ship recommendation
+4. **Product Owner scope check** — reject late-stage "while we're at it" additions; follow-up work goes to backlog
+5. **Produce a consolidated Gate 6 summary** saved to `docs/gates/sprint-N-gate-6-validation-consolidated.md`
+
 #### Human Checkpoint 3
 
 **STOP and present to the human:**
-- Feature demo or walkthrough of what was built
+- The consolidated summary with unified ship/no-ship recommendation
 - Test results summary (pass/fail)
 - NFR benchmark results vs. targets
 - Any open defects or known limitations

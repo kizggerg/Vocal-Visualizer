@@ -45,7 +45,8 @@ Based on `docs/architecture/sdlc.md`, phases fall into two categories:
 Session starts
   → Phase 1: Requirements          [20 min]
   → Gate 1: Agent reviews           [10 min]
-  → STOP at HC-1                    ← writes gate file, creates GitHub Issue
+  → Gate 1: Reconciliation          [10 min]  ← Scrum Master reconciles, PO scope-checks
+  → STOP at HC-1                    ← writes consolidated summary, creates GitHub Issue
 ```
 
 **Maximum autonomous output before first human gate:** Requirements + agent reviews. The agent cannot proceed to design without human approval.
@@ -56,7 +57,8 @@ Session starts
 Session starts, reads state: HC-1 APPROVED
   → Phase 2: Design & Architecture  [30 min]
   → Gate 2: Agent reviews           [15 min]
-  → STOP at HC-2                    ← writes gate file, creates GitHub Issue
+  → Gate 2: Reconciliation          [15 min]  ← Scrum Master reconciles, PO scope-checks
+  → STOP at HC-2                    ← writes consolidated summary, creates GitHub Issue
 ```
 
 **Scenario C: Human approved HC-2 before the session**
@@ -73,7 +75,8 @@ Session starts, reads state: HC-2 APPROVED
   → Fix review findings, re-review   [20-40 min loop]
   → Phase 6: Validation              [15 min]
   → Gate 6: Agent reviews            [10 min]
-  → STOP at HC-3                     ← writes gate file, creates GitHub Issue + PR
+  → Gate 6: Reconciliation           [10 min]  ← Scrum Master reconciles, PO scope-checks
+  → STOP at HC-3                     ← writes consolidated summary, creates GitHub Issue + PR
 ```
 
 **Maximum autonomous output:** Test plan, full implementation, code review, security review, fix cycles, validation, and all artifacts. This is the highest-value overnight run.
