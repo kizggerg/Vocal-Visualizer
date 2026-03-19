@@ -39,12 +39,24 @@ This document defines the software development lifecycle, the trust-but-verify r
 | QA Engineer | Stories are testable, acceptance criteria are unambiguous |
 | Security Engineer | Security requirements identified, data sensitivity classified |
 
+### Gate 1 Reconciliation
+
+After all reviewers submit their feedback, the **Scrum Master** runs a reconciliation step before presenting to the human:
+
+1. **Collect** all reviewer outputs into a single reconciliation document
+2. **Identify conflicts** — e.g., security recommends server-side validation while architect recommends client-only. Flag each conflict explicitly.
+3. **Facilitate resolution** — share the conflicting positions with the relevant agents, ask each to respond to the other's concern, and attempt to converge on a unified recommendation. Reference ADR-001 foundational principles to break ties.
+4. **Product Owner scope check** — the Product Owner reviews any technical recommendations that would expand scope (new infrastructure, additional stories, tech debt items) and either accepts them as necessary or rejects them as over-engineering. The Product Owner's scope decision is final unless it creates a security vulnerability.
+5. **Produce a consolidated Gate 1 summary** that presents one coherent set of recommendations (not N independent reviews) with any unresolved disagreements clearly marked for human decision.
+6. Save to `docs/gates/sprint-N-gate-1-requirements-consolidated.md`
+
 ### 🖐 Human Checkpoint
 
 **Human reviews and approves:**
 - Scope and priority (is this what we should build?)
 - NFRs are realistic
 - Any scope concerns before design begins
+- Any unresolved agent disagreements flagged in the consolidated summary
 
 ---
 
@@ -73,6 +85,17 @@ This document defines the software development lifecycle, the trust-but-verify r
 | Threat Model | Architect | Mitigations are architecturally viable |
 | All | QA Engineer | Designs and interfaces are testable |
 
+### Gate 2 Reconciliation
+
+After all reviewers submit their feedback, the **Scrum Master** runs a reconciliation step:
+
+1. **Collect** all reviewer outputs (architecture decisions, design specs, threat model, cross-reviews)
+2. **Identify conflicts** — e.g., architect proposes client-side processing but security engineer requires server-side validation; designer proposes a flow that doesn't fit the component architecture. Flag each conflict explicitly.
+3. **Facilitate resolution** — share conflicting positions between the relevant agents. Each agent must respond to the other's concern with a concrete proposal (not just "I disagree"). The Scrum Master drives toward a single unified recommendation per conflict. Reference ADR-001 to break ties.
+4. **Product Owner scope check** — the Product Owner reviews any technical proposals that would expand scope beyond what the approved requirements call for. Examples of scope creep to reject: unnecessary infrastructure, "nice to have" abstractions, premature scalability work, tech debt stories not tied to a current user story. The Product Owner's scope decision is final unless it creates a security vulnerability.
+5. **Produce a consolidated Gate 2 summary** with unified architecture + design + security posture. Unresolved disagreements are clearly marked for human decision with both positions and trade-offs.
+6. Save to `docs/gates/sprint-N-gate-2-architecture-consolidated.md`
+
 ### 🖐 Human Checkpoint
 
 **Human reviews and approves:**
@@ -81,6 +104,7 @@ This document defines the software development lifecycle, the trust-but-verify r
 - Service interface contracts (these are expensive to change later)
 - Design direction (does this feel right?)
 - Threat model risk acceptance (acceptable residual risks?)
+- Any unresolved agent disagreements flagged in the consolidated summary
 
 ---
 
@@ -177,12 +201,24 @@ The QA engineer attaches validation evidence directly to the PR as comments or i
 | Product Owner | Acceptance criteria met, feature behaves as intended |
 | Architect | NFR benchmarks meet thresholds, no architectural regressions |
 
+### Gate 6 Reconciliation
+
+After all validation reviews are complete, the **Scrum Master** runs a reconciliation step:
+
+1. **Collect** QA results, Product Owner acceptance verdict, and Architect NFR assessment
+2. **Identify conflicts** — e.g., QA passes all tests but Architect flags an NFR regression; Product Owner accepts behavior but QA found edge-case defects
+3. **Facilitate resolution** — drive toward a unified ship/no-ship recommendation with clear rationale
+4. **Product Owner scope check** — reject any late-stage "while we're at it" additions. The feature ships what was scoped, period. Follow-up work goes to the backlog.
+5. **Produce a consolidated Gate 6 summary** with unified recommendation
+6. Save to `docs/gates/sprint-N-gate-6-validation-consolidated.md`
+
 ### 🖐 Human Checkpoint
 
 **Human reviews and approves:**
 - Feature is working as expected (demo or walkthrough)
 - Test results and any open defects
 - NFR benchmark results
+- Consolidated recommendation from all agents
 - Ready for documentation and deploy?
 
 ---
@@ -221,14 +257,15 @@ The QA engineer attaches validation evidence directly to the PR as comments or i
 
 ## Review Assignment Summary
 
-| Agent | Reviews Output From |
-|-------|-------------------|
-| Product Owner | Designer (intent), QA Engineer (AC coverage), QA results (acceptance) |
-| Architect | Product Owner (feasibility), Designer (implementability), Security (viability), QA (NFRs), Technical Writer (accuracy) |
-| Designer | Architect (design feasibility) |
-| Security Engineer | Product Owner (security reqs), Architect (security posture), Engineers (vulnerabilities) |
-| QA Engineer | Product Owner (testability), Architect (testability), Designer (testability) |
-| Code Reviewer | Frontend Engineer, Backend Engineer, DevOps Engineer (code quality) |
+| Agent | Reviews Output From | Additional Roles |
+|-------|-------------------|-----------------|
+| Scrum Master | All gate outputs | **Gate Coordinator** — runs reconciliation before every human checkpoint |
+| Product Owner | Designer (intent), QA Engineer (AC coverage), QA results (acceptance) | **Scope Guard** — rejects scope creep at every gate |
+| Architect | Product Owner (feasibility), Designer (implementability), Security (viability), QA (NFRs), Technical Writer (accuracy) | |
+| Designer | Architect (design feasibility) | |
+| Security Engineer | Product Owner (security reqs), Architect (security posture), Engineers (vulnerabilities) | |
+| QA Engineer | Product Owner (testability), Architect (testability), Designer (testability) | |
+| Code Reviewer | Frontend Engineer, Backend Engineer, DevOps Engineer (code quality) | |
 
 ## Human-in-the-Loop Summary
 
@@ -274,10 +311,33 @@ Every PR must include proof that the changes work. Evidence is a collaborative e
 
 **Missing evidence blocks merge:** Code Reviewer must request changes if the PR lacks required evidence.
 
-## Escalation Protocol
+## Reconciliation Protocol
 
-When agents disagree:
-1. The disagreeing agents each document their position with trade-offs
-2. They attempt to resolve by referencing the foundational principles (ADR-001)
-3. If unresolved, the issue is escalated to the human with both positions presented
-4. The human decides, and the decision is recorded as an ADR
+Cross-agent coordination happens at every gate with a human checkpoint. The Scrum Master is responsible for driving reconciliation.
+
+### How Reconciliation Works
+
+1. **Collect** — Gather all agent outputs for the gate into one view
+2. **Detect conflicts** — Identify where agents contradict each other (e.g., architecture says "client-only" but security says "server-side validation required")
+3. **Cross-pollinate** — Share each agent's position with the conflicting agent. Each must respond to the other's concern with a concrete counter-proposal or accommodation, not just restate their position.
+4. **Converge** — The Scrum Master synthesizes responses into a unified recommendation. Use ADR-001 foundational principles as the tiebreaker (Simplicity First > Security First > Right Tool > Scale-to-Zero > ...).
+5. **Scope-check** — The Product Owner reviews the unified recommendation and rejects anything that expands scope beyond what is necessary to deliver the approved requirements. Technical agents may not introduce new stories, infrastructure, or abstractions without Product Owner approval.
+6. **Document** — Produce a single consolidated summary for the human. Unresolved conflicts (rare — most should resolve in step 3-4) are presented with both positions and a recommended resolution.
+
+### Product Owner as Scope Guard
+
+The Product Owner has **veto power over scope expansion** at every gate. Specifically:
+
+- **Reject** tech debt stories not tied to a current user story
+- **Reject** premature infrastructure (build it when you need it, not before)
+- **Reject** "nice to have" abstractions, extra configurability, or defensive architecture for hypothetical future requirements
+- **Accept** scope additions only when they are necessary to meet an approved requirement or close a security vulnerability
+- The Product Owner's scope decision is **final** unless it would create a security vulnerability (Security Engineer can override on security grounds only)
+
+### Escalation (Last Resort)
+
+If reconciliation fails to resolve a conflict:
+1. The Scrum Master documents both positions with trade-offs in the consolidated gate summary
+2. The Scrum Master adds a clear recommendation based on ADR-001 principles
+3. The conflict is escalated to the human at the checkpoint, who decides
+4. The human's decision is recorded as an ADR

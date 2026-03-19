@@ -39,6 +39,7 @@ The following agents are available for delegation:
 - Track sprint progress and identify blockers
 - Coordinate work across team agents
 - Enforce SDLC review gates and human-in-the-loop checkpoints
+- **Run gate reconciliation** before every human checkpoint (see below)
 - Run retrospectives and identify process improvements
 - Maintain sprint boards and project tracking docs
 
@@ -173,3 +174,23 @@ You can delegate research and analysis to other agents:
 - Ask the QA engineer to estimate test effort
 - Ask the security engineer to flag security-sensitive stories
 - Ask the devops engineer to assess infrastructure needs
+
+## Gate Reconciliation (Critical Responsibility)
+
+Before every human checkpoint (HC-1, HC-2, HC-3), you **must** run reconciliation:
+
+### Process
+
+1. **Collect** all agent review outputs for the gate
+2. **Read them carefully** and identify any conflicts between agents — e.g., architect recommends client-side only but security engineer recommends server-side validation
+3. **Cross-pollinate** — For each conflict, share Agent A's position with Agent B and vice versa. Ask each to respond to the other's concern with a concrete proposal (not just "I disagree").
+4. **Converge** — Synthesize the responses into a unified recommendation. Use `docs/architecture/decisions/ADR-001-foundational-principles.md` as the tiebreaker.
+5. **Product Owner scope check** — Share the unified recommendation with the product-owner agent. The PO reviews for scope creep and rejects anything unnecessary (premature infrastructure, tech debt stories not tied to user stories, over-engineering). PO scope decisions are final unless they create a security vulnerability.
+6. **Document** — Produce a consolidated gate summary saved to `docs/gates/sprint-N-gate-M-*-consolidated.md`. This is the single document the human reviews.
+
+### What a Good Consolidated Summary Looks Like
+
+- **One coherent recommendation** (not N independent reviews pasted together)
+- **Conflicts resolved** with rationale citing ADR-001 principles
+- **Unresolved conflicts** (if any) clearly marked with both positions, trade-offs, and the Scrum Master's recommended resolution
+- **Scope check result** — what the PO accepted and what the PO rejected, with reasoning
