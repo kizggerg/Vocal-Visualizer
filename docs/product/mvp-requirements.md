@@ -1,8 +1,8 @@
 # MVP Requirements: Pitch Contour Visualization
 
-**Version:** 1.0
+**Version:** 1.1
 **Date:** 2026-03-19
-**Status:** Draft -- Awaiting HC-1 Approval
+**Status:** Draft -- Awaiting HC-1 Approval (updated per Gate 1 reconciliation)
 
 ---
 
@@ -48,6 +48,11 @@ Then the system displays a progress indicator (e.g., progress bar or spinner wit
 Given the user is on the upload page,
 When they drag a valid audio file onto the upload area,
 Then the file is accepted and upload begins, behaving identically to file selection.
+
+**AC-1.6: Recording duration validation**
+Given the user uploads a recording longer than 10 minutes,
+When validation runs,
+Then the system rejects it with a message stating the maximum recording duration.
 
 ---
 
@@ -132,10 +137,15 @@ Given the network connection drops or the server returns an error during upload,
 When the upload fails,
 Then the system displays a user-friendly error message and offers a "Try Again" action.
 
-**AC-4.2: Analysis failure**
-Given the uploaded file cannot be analyzed (e.g., corrupted audio, no detectable pitch),
-When analysis fails,
-Then the system displays a message explaining the issue (e.g., "We couldn't detect pitch in this recording. Try a clearer vocal recording without background music.") and offers a way to upload a different file.
+**AC-4.2a: Corrupted or undecodable audio**
+Given the uploaded file cannot be decoded (e.g., corrupted file, truncated data),
+When decoding fails,
+Then the system displays a message explaining the file could not be read (e.g., "This file appears to be corrupted. Please try a different file.") and offers a way to upload a different file.
+
+**AC-4.2b: No detectable pitch**
+Given the audio decodes successfully but contains no detectable pitched content (e.g., applause, noise, silence),
+When pitch analysis completes with no results,
+Then the system displays a message explaining no pitch was found (e.g., "We couldn't detect pitch in this recording. Try a clearer vocal recording without background music.") and offers a way to upload a different file.
 
 **AC-4.3: Empty or very short recording**
 Given the user uploads a recording shorter than 1 second,
@@ -155,10 +165,10 @@ Then the user is never left on a screen with no feedback -- there is always a me
 
 | Metric | Target | Notes |
 |--------|--------|-------|
-| File upload time (10 MB file) | < 10 seconds | Depends on user bandwidth; measures server acceptance time |
-| Pitch analysis time (5-minute recording) | < 30 seconds | Server-side processing wall clock |
-| Visualization render time | < 2 seconds | Time from receiving data to chart visible in browser |
+| Pitch analysis time (5-minute recording) | < 30 seconds | Client-side processing on representative mid-range hardware (2 GHz dual-core, 4 GB RAM) |
+| Visualization render time | < 2 seconds | Time from analysis completion to chart visible in browser |
 | Page initial load (Time to Interactive) | < 3 seconds | On a broadband connection |
+| JavaScript bundle size (gzipped) | < 500 KB | Total transferred JS including dependencies |
 
 ### 3.2 File Constraints
 
@@ -195,11 +205,11 @@ Mobile browsers are not a target but should not be actively broken.
 
 ### 3.6 Security
 
-- Uploaded files must be validated server-side (format, size, content-type)
-- Uploaded files are transient -- not stored beyond the duration of the analysis session
+- Uploaded files must be validated (format, size, content-type) before processing
+- Uploaded files are transient -- processed in the browser and not persisted or transmitted to a server
 - No user authentication required for MVP
 - All traffic over HTTPS
-- Input validation on all API endpoints
+- Error messages shown to users must not expose stack traces or implementation details
 
 ---
 
@@ -208,13 +218,12 @@ Mobile browsers are not a target but should not be actively broken.
 ### Must Have
 
 - Upload a single audio file (WAV, MP3, M4A) via file picker (AC-1.1)
-- Client-side file format and size validation (AC-1.2, AC-1.3)
-- Server-side file validation (NFR 3.6)
+- File format, size, and duration validation (AC-1.2, AC-1.3, AC-1.6, NFR 3.6)
 - Automatic pitch analysis after upload (AC-2.1)
 - Processing status feedback (AC-2.2)
 - Pitch contour chart with note names on Y-axis and time on X-axis (AC-3.1)
 - Silence/unvoiced gap handling (AC-3.3)
-- Error messages for upload failures, analysis failures, and invalid files (AC-4.1, AC-4.2, AC-4.3, AC-4.4)
+- Error messages for upload failures, analysis failures, and invalid files (AC-4.1, AC-4.2a, AC-4.2b, AC-4.3, AC-4.4)
 - Analysis completes within 30 seconds for recordings up to 5 minutes (AC-2.3)
 - HTTPS everywhere (NFR 3.6)
 - Keyboard navigability and WCAG AA contrast (NFR 3.4)
