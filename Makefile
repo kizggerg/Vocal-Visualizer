@@ -1,4 +1,8 @@
-.PHONY: dev build test lint typecheck audit bundle-check ci deploy infra-plan infra-apply
+.PHONY: dev build test lint typecheck audit bundle-check ci \
+       deploy-staging deploy-prod \
+       infra-init-staging infra-init-prod \
+       infra-plan-staging infra-plan-prod \
+       infra-apply-staging infra-apply-prod
 
 dev:
 	npx vite
@@ -24,11 +28,30 @@ bundle-check: build
 ci: lint typecheck test build bundle-check audit
 	@echo "All CI checks passed."
 
-deploy: build
+# --- Terraform (per-environment) ---
+
+infra-init-staging:
+	terraform -chdir=infra init -backend-config="key=staging/terraform.tfstate"
+
+infra-init-prod:
+	terraform -chdir=infra init -backend-config="key=prod/terraform.tfstate"
+
+infra-plan-staging:
+	terraform -chdir=infra plan -var-file=envs/staging.tfvars
+
+infra-plan-prod:
+	terraform -chdir=infra plan -var-file=envs/prod.tfvars
+
+infra-apply-staging:
+	terraform -chdir=infra apply -var-file=envs/staging.tfvars
+
+infra-apply-prod:
+	terraform -chdir=infra apply -var-file=envs/prod.tfvars
+
+# --- App deploy (per-environment) ---
+
+deploy-staging: build
 	bash scripts/deploy.sh
 
-infra-plan:
-	terraform -chdir=infra plan
-
-infra-apply:
-	terraform -chdir=infra apply
+deploy-prod: build
+	bash scripts/deploy.sh

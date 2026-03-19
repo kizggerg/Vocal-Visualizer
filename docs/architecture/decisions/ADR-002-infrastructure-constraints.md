@@ -37,3 +37,4 @@ Before the team begins work, we need to establish the infrastructure and platfor
 - Frontend hosting via S3 + CloudFront (near-zero cost for static assets)
 - Database must support serverless pricing (DynamoDB, Aurora Serverless, or S3 for simple storage)
 - All infrastructure must be expressible as IaC (CDK, Terraform, or SAM)
+- Multi-environment deployment (staging + production) with pipeline-driven Terraform — see ADR-005

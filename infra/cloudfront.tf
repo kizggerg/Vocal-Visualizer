@@ -4,8 +4,8 @@
 
 # Origin Access Control for S3
 resource "aws_cloudfront_origin_access_control" "site" {
-  name                              = "${var.project_name}-oac"
-  description                       = "OAC for ${var.project_name} S3 bucket"
+  name                              = "${var.project_name}-${var.environment}-oac"
+  description                       = "OAC for ${var.project_name} ${var.environment} S3 bucket"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
@@ -13,7 +13,7 @@ resource "aws_cloudfront_origin_access_control" "site" {
 
 # Response headers policy with all required security headers
 resource "aws_cloudfront_response_headers_policy" "security_headers" {
-  name = "${var.project_name}-security-headers"
+  name = "${var.project_name}-${var.environment}-security-headers"
 
   security_headers_config {
     # SR-200: HSTS with max-age >= 31536000
@@ -50,7 +50,7 @@ resource "aws_cloudfront_response_headers_policy" "security_headers" {
 
 # CloudFront function for SPA routing (index.html fallback)
 resource "aws_cloudfront_function" "spa_rewrite" {
-  name    = "${var.project_name}-spa-rewrite"
+  name    = "${var.project_name}-${var.environment}-spa-rewrite"
   runtime = "cloudfront-js-2.0"
   publish = true
   code    = file("${path.module}/functions/spa-rewrite.js")
@@ -61,7 +61,7 @@ resource "aws_cloudfront_distribution" "site" {
   enabled             = true
   is_ipv6_enabled     = true
   default_root_object = "index.html"
-  comment             = "${var.project_name} static site"
+  comment             = "${var.project_name} ${var.environment} static site"
   price_class         = "PriceClass_100" # US, Canada, Europe only — cheapest
 
   origin {

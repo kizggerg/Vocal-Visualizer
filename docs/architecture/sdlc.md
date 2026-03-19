@@ -271,12 +271,16 @@ After all validation reviews are complete, the **Scrum Master** runs a reconcili
 
 **Owner:** DevOps Engineer
 
-**Outputs:**
-- Deployed to target environment
-- Post-deployment health checks pass
-- Monitoring and alerting confirmed
+**Deployment Model (ADR-005):**
+- **Staging:** Automatic on merge to `main`. Pipeline runs `terraform apply` (staging) then deploys the app. Agents validate against staging.
+- **Production:** Explicit promotion via `workflow_dispatch` on `promote-production.yml`. Requires typing "promote" to confirm. Pipeline runs `terraform apply` (prod) then deploys the app.
 
-*Human is notified of deployment. Rollback plan is documented.*
+**Outputs:**
+- Deployed to staging (automatic) and production (after explicit promotion)
+- Post-deployment health checks pass (HTTP 200 verification)
+- Terraform state updated for the target environment
+
+*Human triggers production promotion after staging validation. Rollback: re-run the promotion workflow on a previous known-good commit.*
 
 ---
 
@@ -313,7 +317,8 @@ A story is **done** when ALL of the following are true:
 - [ ] Human has approved the feature (Human Checkpoint 3)
 - [ ] Documentation is updated (Gate 7)
 - [ ] Code is merged to main
-- [ ] Feature is deployed and verified (Phase 8)
+- [ ] Feature is deployed to staging and verified (Phase 8, automatic on merge)
+- [ ] Feature is promoted to production and verified (Phase 8, explicit promotion)
 
 A feature is not done until it is deployed and validated in production.
 

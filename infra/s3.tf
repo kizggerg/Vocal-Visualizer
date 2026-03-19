@@ -2,7 +2,7 @@
 # Satisfies: SR-201 (Block Public Access ON, OAC-only read path)
 
 resource "aws_s3_bucket" "site" {
-  bucket = "${var.project_name}-site-${data.aws_caller_identity.current.account_id}"
+  bucket = "${var.project_name}-${var.environment}-site-${data.aws_caller_identity.current.account_id}"
 }
 
 resource "aws_s3_bucket_versioning" "site" {

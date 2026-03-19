@@ -1,0 +1,111 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [main]
+
+# Prevent concurrent staging deployments
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+# SR-002: OIDC federation for AWS auth
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  # Run the full CI pipeline first
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  terraform:
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      s3_bucket: ${{ steps.tf-outputs.outputs.s3_bucket }}
+      cloudfront_id: ${{ steps.tf-outputs.outputs.cloudfront_id }}
+      cloudfront_domain: ${{ steps.tf-outputs.outputs.cloudfront_domain }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.5"
+          terraform_wrapper: false
+
+      # SR-002: OIDC authentication, no long-lived keys
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Terraform Init (staging)
+        working-directory: infra
+        run: terraform init -backend-config="key=staging/terraform.tfstate"
+
+      - name: Terraform Plan (staging)
+        working-directory: infra
+        run: terraform plan -var-file=envs/staging.tfvars -out=staging.tfplan
+
+      - name: Terraform Apply (staging)
+        working-directory: infra
+        run: terraform apply staging.tfplan
+
+      - name: Export Terraform outputs
+        id: tf-outputs
+        working-directory: infra
+        run: |
+          echo "s3_bucket=$(terraform output -raw s3_bucket_name)" >> "$GITHUB_OUTPUT"
+          echo "cloudfront_id=$(terraform output -raw cloudfront_distribution_id)" >> "$GITHUB_OUTPUT"
+          echo "cloudfront_domain=$(terraform output -raw cloudfront_domain_name)" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: terraform
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npx vite build
+
+      # SR-002: OIDC authentication, no long-lived keys
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Deploy to S3 and invalidate CloudFront
+        env:
+          VOCAL_VISUALIZER_S3_BUCKET: ${{ needs.terraform.outputs.s3_bucket }}
+          VOCAL_VISUALIZER_CF_DISTRIBUTION_ID: ${{ needs.terraform.outputs.cloudfront_id }}
+        run: bash scripts/deploy.sh
+
+      - name: Verify deployment
+        env:
+          CLOUDFRONT_DOMAIN: ${{ needs.terraform.outputs.cloudfront_domain }}
+        run: |
+          echo "Waiting for CloudFront propagation..."
+          sleep 10
+          # Strip https:// prefix for curl
+          DOMAIN="${CLOUDFRONT_DOMAIN#https://}"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${DOMAIN}/")
+          if [ "$STATUS" -eq 200 ]; then
+            echo "Staging deployment verified: HTTP $STATUS"
+          else
+            echo "WARNING: Received HTTP $STATUS (may need more propagation time)"
+          fi

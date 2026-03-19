@@ -2,7 +2,7 @@
 
 **Author:** DevOps Engineer | **Date:** 2026-03-19 | **Status:** Proposed
 
-Covers CI, deployment, and scaffolding for the static React + Vite + TypeScript MVP on S3 + CloudFront. No Docker, no IaC, no multi-environment -- justified by ADR-002 (<10 users, static site, two AWS resources).
+Covers CI, deployment, and scaffolding for the static React + Vite + TypeScript MVP on S3 + CloudFront. Multi-environment (staging + production) with pipeline-driven Terraform — see ADR-005.
 
 ---
 
@@ -26,7 +26,17 @@ Covers CI, deployment, and scaffolding for the static React + Vite + TypeScript 
 
 ## 2. Deployment
 
-### S3 + CloudFront (manual one-time setup)
+### Environments (ADR-005)
+
+| Environment | Trigger | Pipeline |
+|-------------|---------|----------|
+| **Local** | Feature branch, `npm run dev` | Developer/agent iteration |
+| **Staging** | Merge to `main` (automatic) | `deploy-staging.yml` — terraform apply + app deploy |
+| **Production** | Manual `workflow_dispatch` | `promote-production.yml` — terraform apply + app deploy |
+
+### Infrastructure (Terraform, pipeline-driven)
+
+Each environment has its own S3 bucket, CloudFront distribution, and Terraform state. The pipeline runs `terraform init`, `plan`, and `apply` — no manual infrastructure changes.
 
 - S3: Block Public Access all ON (SR-201), no static hosting, OAC access only
 - CloudFront: HTTPS redirect (SR-200), OAC origin, default root `index.html`, `PriceClass_100`
@@ -42,12 +52,12 @@ Covers CI, deployment, and scaffolding for the static React + Vite + TypeScript 
 
 ### `scripts/deploy.sh`
 
-- Reads `VOCAL_VISUALIZER_S3_BUCKET` and `VOCAL_VISUALIZER_CF_DISTRIBUTION_ID` from env vars
+- Reads `VOCAL_VISUALIZER_S3_BUCKET` and `VOCAL_VISUALIZER_CF_DISTRIBUTION_ID` from env vars or Terraform outputs
 - Runs `aws s3 sync dist/ s3://$BUCKET --delete` with cache-control: `immutable` for hashed assets, `no-cache` for HTML
 - Creates CloudFront invalidation (`/*`)
 - No hardcoded secrets; AWS creds from caller's environment
 
-**Deploy process (manual):** `npm run build` then `./scripts/deploy.sh`. Automated deploy-on-merge deferred.
+**Local deploy:** `make deploy-staging` or `make deploy-prod` (requires `make infra-init-<env>` + `make infra-apply-<env>` first).
 
 ---
 

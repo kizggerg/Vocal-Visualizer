@@ -4,6 +4,16 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "environment" {
+  description = "Deployment environment (staging or prod)"
+  type        = string
+
+  validation {
+    condition     = contains(["staging", "prod"], var.environment)
+    error_message = "Environment must be 'staging' or 'prod'."
+  }
+}
+
 variable "project_name" {
   description = "Project name used in resource naming"
   type        = string
