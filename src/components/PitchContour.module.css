@@ -1,0 +1,19 @@
+.container {
+	width: 100%;
+}
+
+.chartWrapper {
+	width: 100%;
+	min-width: 800px;
+	background: var(--chart-bg);
+}
+
+.summary {
+	font-size: 14px;
+	color: var(--color-text-secondary);
+	text-align: center;
+	margin-top: var(--space-md);
+	padding: var(--space-sm) var(--space-md);
+	background-color: var(--color-bg-subtle);
+	border-radius: 8px;
+}
