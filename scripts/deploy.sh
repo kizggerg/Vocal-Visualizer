@@ -1,14 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Resolve S3 bucket and CloudFront distribution ID.
+# Priority: environment variables > Terraform outputs.
+
+INFRA_DIR="$(cd "$(dirname "$0")/../infra" 2>/dev/null && pwd)" || true
+
 if [ -z "${VOCAL_VISUALIZER_S3_BUCKET:-}" ]; then
-  echo "ERROR: VOCAL_VISUALIZER_S3_BUCKET environment variable is not set."
-  exit 1
+  if [ -d "$INFRA_DIR" ] && command -v terraform &>/dev/null; then
+    echo "Reading S3 bucket from Terraform outputs..."
+    VOCAL_VISUALIZER_S3_BUCKET=$(terraform -chdir="$INFRA_DIR" output -raw s3_bucket_name 2>/dev/null) || true
+  fi
+  if [ -z "${VOCAL_VISUALIZER_S3_BUCKET:-}" ]; then
+    echo "ERROR: VOCAL_VISUALIZER_S3_BUCKET is not set and could not be read from Terraform outputs."
+    echo "Set the environment variable or run 'terraform apply' in infra/."
+    exit 1
+  fi
 fi
 
 if [ -z "${VOCAL_VISUALIZER_CF_DISTRIBUTION_ID:-}" ]; then
-  echo "ERROR: VOCAL_VISUALIZER_CF_DISTRIBUTION_ID environment variable is not set."
-  exit 1
+  if [ -d "$INFRA_DIR" ] && command -v terraform &>/dev/null; then
+    echo "Reading CloudFront distribution ID from Terraform outputs..."
+    VOCAL_VISUALIZER_CF_DISTRIBUTION_ID=$(terraform -chdir="$INFRA_DIR" output -raw cloudfront_distribution_id 2>/dev/null) || true
+  fi
+  if [ -z "${VOCAL_VISUALIZER_CF_DISTRIBUTION_ID:-}" ]; then
+    echo "ERROR: VOCAL_VISUALIZER_CF_DISTRIBUTION_ID is not set and could not be read from Terraform outputs."
+    echo "Set the environment variable or run 'terraform apply' in infra/."
+    exit 1
+  fi
 fi
 
 DIST_DIR="dist"

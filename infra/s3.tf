@@ -1,0 +1,63 @@
+# S3 bucket for static site hosting (private, accessed only via CloudFront OAC)
+# Satisfies: SR-201 (Block Public Access ON, OAC-only read path)
+
+resource "aws_s3_bucket" "site" {
+  bucket = "${var.project_name}-site-${data.aws_caller_identity.current.account_id}"
+}
+
+resource "aws_s3_bucket_versioning" "site" {
+  bucket = aws_s3_bucket.site.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "site" {
+  bucket = aws_s3_bucket.site.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# SR-201: Block ALL public access
+resource "aws_s3_bucket_public_access_block" "site" {
+  bucket = aws_s3_bucket.site.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# Bucket policy: allow only CloudFront OAC to read objects
+resource "aws_s3_bucket_policy" "site" {
+  bucket = aws_s3_bucket.site.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowCloudFrontOAC"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudfront.amazonaws.com"
+        }
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.site.arn}/*"
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = aws_cloudfront_distribution.site.arn
+          }
+        }
+      }
+    ]
+  })
+
+  depends_on = [aws_s3_bucket_public_access_block.site]
+}
+
+data "aws_caller_identity" "current" {}
