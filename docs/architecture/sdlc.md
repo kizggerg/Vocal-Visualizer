@@ -5,12 +5,14 @@ This document defines the software development lifecycle, the trust-but-verify r
 ## Overview
 
 ```
-  REQUIREMENTS ──▶ GATE 1 ──▶ DESIGN & ARCHITECTURE ──▶ GATE 2 ──▶ TEST PLANNING
-       │                              │                                  │
-   [HUMAN ✋]                      [HUMAN ✋]                          GATE 3
-       │                              │                                  │
-       ▼                              ▼                                  ▼
-  IMPLEMENTATION ──▶ GATE 4 ──▶ REVIEW ──▶ GATE 5 ──▶ VALIDATION ──▶ GATE 6
+  REQUIREMENTS ──▶ GATE 1 ──▶ DESIGN, ARCHITECTURE, ──▶ GATE 2 ──▶ IMPLEMENTATION
+       │                       TEST PLAN & DEVOPS           │             │
+   [HUMAN ✋]                                           [HUMAN ✋]     GATE 4
+       │                                                    │             │
+       ▼                                                    ▼             ▼
+                                                                    REVIEW ──▶ GATE 5
+                                                                         │
+                                                                    VALIDATION ──▶ GATE 6
                                                                          │
                                                                      [HUMAN ✋]
                                                                          │
@@ -60,21 +62,27 @@ After all reviewers submit their feedback, the **Scrum Master** runs a reconcili
 
 ---
 
-## Phase 2: Design & Architecture (Parallel with Coordination)
+## Phase 2: Design, Architecture, Test Plan & DevOps (Parallel with Coordination)
 
-**Owners:** Architect, Designer, Security Engineer (concurrent)
+**Owners:** Architect, Designer, Security Engineer, QA Engineer, DevOps Engineer (concurrent)
 
-**Coordination Protocol:** When Architect and Designer work in parallel:
-1. **Architect goes first on component boundaries** — produces a lightweight component architecture (what the major components are, how they communicate) before the Designer starts detailed screen designs
+**Rationale:** Test planning and DevOps readiness are folded into Phase 2 so that HC-2 approval means "everything is ready for implementation to start immediately." No gaps between approval and coding.
+
+**Coordination Protocol:**
+1. **Architect goes first on component boundaries** — produces a lightweight component architecture (what the major components are, how they communicate) before others start detailed work
 2. **Designer and Security Engineer can start immediately** on user flows, wireframes, and threat modeling respectively — these don't depend on component boundaries
-3. **Reconciliation at Gate 2** — if the Architect's component architecture conflicts with the Designer's layout, both present trade-offs and the human resolves at the Gate 2 checkpoint
+3. **QA Engineer starts test planning** once the Architect's component boundaries and service contracts are available — test cases map to acceptance criteria and port interfaces
+4. **DevOps Engineer defines CI/CD and deployment** based on the Architect's tech stack selection — pipeline config, deployment scripts, and infrastructure requirements
+5. **Reconciliation at Gate 2** — all five workstreams are reconciled before presenting to the human
 
 **Outputs:**
 - Architect → ADRs, service interface contracts, data models, tech selections → `docs/architecture/`
 - Designer → UI/UX specs, component specs, user flows → `docs/design/`
 - Security Engineer → Threat model, security requirements → `docs/security/`
+- QA Engineer → Test plan, test cases, NFR benchmarks → `docs/qa/`
+- DevOps Engineer → CI/CD pipeline design, deployment plan, infrastructure requirements → `docs/architecture/` or `docs/sprints/`
 
-### Gate 2: Design & Architecture Review
+### Gate 2: Design, Architecture, Test Plan & DevOps Review
 
 | Output | Reviewer | Checks |
 |--------|----------|--------|
@@ -83,14 +91,19 @@ After all reviewers submit their feedback, the **Scrum Master** runs a reconcili
 | Design | Architect | Design is implementable, aligns with component architecture |
 | Design | Product Owner | Design meets user story intent |
 | Threat Model | Architect | Mitigations are architecturally viable |
-| All | QA Engineer | Designs and interfaces are testable |
+| Test Plan | Product Owner | All acceptance criteria have corresponding test cases |
+| Test Plan | Architect | Integration and contract tests cover service boundaries |
+| Test Plan | Security Engineer | Security test cases are included |
+| DevOps Plan | Architect | CI/CD pipeline and deployment approach align with tech stack |
+| DevOps Plan | Security Engineer | Pipeline includes security checks (dependency audit, etc.) |
+| All | QA Engineer | Designs, interfaces, and infrastructure are testable |
 
 ### Gate 2 Reconciliation
 
 After all reviewers submit their feedback, the **Scrum Master** runs a reconciliation step:
 
-1. **Collect** all reviewer outputs (architecture decisions, design specs, threat model, cross-reviews)
-2. **Identify conflicts** — e.g., architect proposes client-side processing but security engineer requires server-side validation; designer proposes a flow that doesn't fit the component architecture. Flag each conflict explicitly.
+1. **Collect** all reviewer outputs (architecture decisions, design specs, threat model, test plan, DevOps plan, cross-reviews)
+2. **Identify conflicts** — e.g., architect proposes client-side processing but security engineer requires server-side validation; designer proposes a flow that doesn't fit the component architecture; test plan assumes infrastructure that DevOps hasn't planned. Flag each conflict explicitly.
 3. **Facilitate resolution** — share conflicting positions between the relevant agents. Each agent must respond to the other's concern with a concrete proposal (not just "I disagree"). The Scrum Master drives toward a single unified recommendation per conflict. Reference ADR-001 to break ties.
 4. **Product Owner scope check** — the Product Owner reviews any technical proposals that would expand scope beyond what the approved requirements call for. Examples of scope creep to reject: unnecessary infrastructure, "nice to have" abstractions, premature scalability work, tech debt stories not tied to a current user story. The Product Owner's scope decision is final unless it creates a security vulnerability.
 5. **Produce a consolidated Gate 2 summary** with unified architecture + design + security posture. Unresolved disagreements are clearly marked for human decision with both positions and trade-offs.
@@ -104,13 +117,17 @@ After all reviewers submit their feedback, the **Scrum Master** runs a reconcili
 - Service interface contracts (these are expensive to change later)
 - Design direction (does this feel right?)
 - Threat model risk acceptance (acceptable residual risks?)
+- Test plan coverage (are we testing the right things?)
+- DevOps readiness (can implementation start immediately after approval?)
 - Any unresolved agent disagreements flagged in the consolidated summary
 
 ---
 
-## Phase 3: Test Planning
+## Phase 3: Test Planning (runs concurrently within Phase 2)
 
 **Owner:** QA Engineer
+
+*Test planning now runs in parallel with design and architecture as part of Phase 2. The test plan is reviewed at Gate 2 (not a separate gate) and approved at HC-2. This ensures implementation can start immediately after HC-2 approval with no gap.*
 
 **Outputs:**
 - Test plan mapped to acceptance criteria
@@ -118,15 +135,23 @@ After all reviewers submit their feedback, the **Scrum Master** runs a reconcili
 - Performance benchmarks and thresholds
 - Saved to `docs/qa/`
 
-### Gate 3: Test Plan Review
+*Gate 3 is absorbed into Gate 2. No separate review gate.*
 
-| Reviewer | Checks |
-|----------|--------|
-| Product Owner | All acceptance criteria have corresponding test cases |
-| Architect | Integration and contract tests cover service boundaries |
-| Security Engineer | Security test cases are included |
+---
 
-*No human checkpoint — test plans are low-risk and validated by acceptance criteria coverage.*
+## Phase 3b: DevOps Readiness (runs concurrently within Phase 2)
+
+**Owner:** DevOps Engineer
+
+*DevOps planning now runs in parallel with design and architecture as part of Phase 2. The DevOps plan is reviewed at Gate 2 and approved at HC-2.*
+
+**Outputs:**
+- CI/CD pipeline design (lint, type-check, test, build)
+- Deployment plan (scripts, hosting setup)
+- Project scaffolding requirements
+- Saved to `docs/architecture/` or `docs/sprints/`
+
+*No separate review gate — reviewed as part of Gate 2.*
 
 ---
 

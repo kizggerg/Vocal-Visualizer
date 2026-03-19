@@ -78,13 +78,24 @@ Run these concurrently:
 - Define security requirements and controls
 - Save artifacts to `docs/security/`
 
-#### Gate 2: Design & Architecture Review
+**Test Plan** — Use the **qa-engineer** agent to:
+- Create test plan mapped to acceptance criteria
+- Write test cases: happy path, edge cases, error scenarios
+- Define NFR benchmarks and performance thresholds
+- Save artifacts to `docs/qa/`
+
+**DevOps Readiness** — Use the **devops-engineer** agent to:
+- Define CI/CD pipeline (lint, type-check, test, build)
+- Define deployment plan and project scaffolding requirements
+- Save artifacts to `docs/architecture/` or `docs/sprints/`
+
+#### Gate 2: Design, Architecture, Test Plan & DevOps Review
 
 Run these reviews concurrently:
 - **designer** reviews architecture for design feasibility
-- **architect** reviews design for implementability
-- **product-owner** reviews design for user story intent
-- **security-engineer** reviews architecture for threat model alignment
+- **architect** reviews design for implementability, test plan for service boundary coverage, DevOps plan for tech stack alignment
+- **product-owner** reviews design for user story intent, test plan for AC coverage
+- **security-engineer** reviews architecture for threat model alignment, DevOps plan for security checks
 - **qa-engineer** reviews all artifacts for testability
 
 Each reviewer saves feedback. Cycle back to resolve critical issues.
@@ -93,10 +104,10 @@ Each reviewer saves feedback. Cycle back to resolve critical issues.
 
 After all reviews complete, run reconciliation:
 
-1. **Collect** all reviewer outputs (architecture, design, threat model, cross-reviews)
-2. **Identify conflicts** (e.g., architect recommends client-side only but security requires server-side validation)
+1. **Collect** all reviewer outputs (architecture, design, threat model, test plan, DevOps plan, cross-reviews)
+2. **Identify conflicts** (e.g., test plan assumes infrastructure DevOps hasn't planned; security requires checks not in CI pipeline)
 3. **Cross-pollinate** — share conflicts between agents, require concrete counter-proposals
-4. **Converge** on unified architecture + design + security posture using ADR-001 as tiebreaker
+4. **Converge** on unified architecture + design + security + test + DevOps posture using ADR-001 as tiebreaker
 5. **Product Owner scope check** — ask the **product-owner** agent to reject scope creep (premature infrastructure, unnecessary abstractions, tech debt not tied to user stories)
 6. **Produce a consolidated Gate 2 summary** saved to `docs/gates/sprint-N-gate-2-architecture-consolidated.md`
 
@@ -107,26 +118,7 @@ After all reviews complete, run reconciliation:
 - Any unresolved disagreements with both positions and trade-offs
 - Ask: "Do you approve these technical choices to proceed to implementation?"
 
-**Do not proceed until the human approves.**
-
----
-
-### Phase 3: Test Planning
-
-Use the **qa-engineer** agent to:
-- Create test plan mapped to acceptance criteria
-- Write test cases: happy path, edge cases, error scenarios
-- Define NFR benchmarks and performance thresholds
-- Save artifacts to `docs/qa/`
-
-#### Gate 3: Test Plan Review
-
-Run these reviews concurrently:
-- **product-owner** agent: Verify all acceptance criteria have test cases
-- **architect** agent: Verify integration and contract tests cover service boundaries
-- **security-engineer** agent: Verify security test cases are included
-
-Cycle back to resolve gaps.
+**Do not proceed until the human approves. After HC-2, implementation starts immediately — no gaps.**
 
 ---
 
