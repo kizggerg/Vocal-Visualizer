@@ -1,4 +1,4 @@
-.PHONY: dev build test lint typecheck audit bundle-check ci
+.PHONY: dev build test lint typecheck audit bundle-check ci deploy infra-plan infra-apply
 
 dev:
 	npx vite
@@ -23,3 +23,12 @@ bundle-check: build
 
 ci: lint typecheck test build bundle-check audit
 	@echo "All CI checks passed."
+
+deploy: build
+	bash scripts/deploy.sh
+
+infra-plan:
+	terraform -chdir=infra plan
+
+infra-apply:
+	terraform -chdir=infra apply
