@@ -50,18 +50,13 @@ describe("UploadArea", () => {
 		expect(onFile).toHaveBeenCalledWith(file);
 	});
 
-	it("has accessible file upload region", () => {
+	it("has accessible file input", () => {
 		render(<UploadArea onFile={vi.fn()} error={null} />);
 
-		expect(
-			screen.getByLabelText("File upload area"),
-		).toBeInTheDocument();
-	});
-
-	it("accepts only audio file types in the file input", () => {
-		render(<UploadArea onFile={vi.fn()} error={null} />);
-
-		const input = screen.getByLabelText("Select audio file") as HTMLInputElement;
+		const input = screen.getByLabelText(
+			"Select audio file",
+		) as HTMLInputElement;
+		expect(input).toBeInTheDocument();
 		expect(input.accept).toBe(".wav,.mp3,.m4a");
 	});
 });

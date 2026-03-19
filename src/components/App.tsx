@@ -34,34 +34,42 @@ export function App() {
 	const errorRef = useRef<HTMLDivElement>(null);
 
 	const handleFile = useCallback(async (file: File) => {
-		// Validate
+		// Validate format and size (no AudioContext needed)
 		const validation = await fileValidator.validate(file, MVP_FILE_CONSTRAINTS);
 		if (!validation.valid) {
-			if (
-				validation.reason === "unsupported_format" ||
-				validation.reason === "file_too_large"
-			) {
-				setState({ screen: "upload", error: validation.message });
-			} else {
-				const headingMap: Record<string, string> = {
-					duration_too_short: "Recording Too Short",
-					duration_too_long: "Recording Too Long",
-				};
-				setState({
-					screen: "error",
-					heading: headingMap[validation.reason] ?? "Validation Error",
-					description: validation.message,
-				});
-				requestAnimationFrame(() => errorRef.current?.focus());
-			}
+			setState({ screen: "upload", error: validation.message });
 			return;
 		}
 
-		setState({ screen: "processing", fileName: file.name });
+		const displayName =
+			file.name.length > 200 ? `${file.name.slice(0, 200)}...` : file.name;
+		setState({ screen: "processing", fileName: displayName });
 
 		try {
 			// Decode
 			const { metadata, samples } = await webAudioDecoder.decode(file);
+
+			// Duration checks (post-decode to avoid duplicate AudioContext)
+			if (metadata.duration < MVP_FILE_CONSTRAINTS.minDurationSeconds) {
+				setState({
+					screen: "error",
+					heading: "Recording Too Short",
+					description:
+						"This recording is too short to analyze. Please upload a recording that is at least 1 second long.",
+				});
+				requestAnimationFrame(() => errorRef.current?.focus());
+				return;
+			}
+			if (metadata.duration > MVP_FILE_CONSTRAINTS.maxDurationSeconds) {
+				setState({
+					screen: "error",
+					heading: "Recording Too Long",
+					description:
+						"This recording exceeds the 10-minute maximum. Please upload a shorter recording.",
+				});
+				requestAnimationFrame(() => errorRef.current?.focus());
+				return;
+			}
 
 			// Analyze (run async to keep UI responsive)
 			const contour = await new Promise<

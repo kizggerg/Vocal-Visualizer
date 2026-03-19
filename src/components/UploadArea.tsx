@@ -50,12 +50,11 @@ export function UploadArea({ onFile, error }: UploadAreaProps) {
 
 	return (
 		<div className={styles.container}>
-			<section
+			<div
 				className={`${styles.dropZone} ${isDragOver ? styles.dragOver : ""} ${error ? styles.hasError : ""}`}
 				onDragOver={handleDragOver}
 				onDragLeave={handleDragLeave}
 				onDrop={handleDrop}
-				aria-label="File upload area"
 			>
 				<svg
 					className={styles.icon}
@@ -88,7 +87,7 @@ export function UploadArea({ onFile, error }: UploadAreaProps) {
 					onChange={handleFileChange}
 					aria-label="Select audio file"
 				/>
-			</section>
+			</div>
 
 			{error && (
 				<div

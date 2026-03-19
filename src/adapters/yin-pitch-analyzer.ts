@@ -66,9 +66,13 @@ function computeSummary(
 		};
 	}
 
-	const frequencies = voiced.map((p) => p.frequency);
-	const minFrequency = Math.min(...frequencies);
-	const maxFrequency = Math.max(...frequencies);
+	let minFrequency = voiced[0].frequency;
+	let maxFrequency = voiced[0].frequency;
+	for (let i = 1; i < voiced.length; i++) {
+		const f = voiced[i].frequency;
+		if (f < minFrequency) minFrequency = f;
+		if (f > maxFrequency) maxFrequency = f;
+	}
 
 	return {
 		minFrequency,

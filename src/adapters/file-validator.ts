@@ -1,13 +1,16 @@
 import type { FileValidator } from "../domain/ports";
 import type { FileConstraints, ValidationResult } from "../domain/types";
 
-function getFileExtension(fileName: string): string {
+export function getFileExtension(fileName: string): string {
 	const dotIndex = fileName.lastIndexOf(".");
 	if (dotIndex === -1) return "";
 	return fileName.slice(dotIndex).toLowerCase();
 }
 
-function isFormatValid(file: File, constraints: FileConstraints): boolean {
+export function isFormatValid(
+	file: File,
+	constraints: FileConstraints,
+): boolean {
 	const extension = getFileExtension(file.name);
 	const extensionOk = constraints.allowedExtensions.includes(extension);
 	const mimeOk =
@@ -15,17 +18,10 @@ function isFormatValid(file: File, constraints: FileConstraints): boolean {
 	return extensionOk && mimeOk;
 }
 
-async function getAudioDuration(file: File): Promise<number> {
-	const arrayBuffer = await file.arrayBuffer();
-	const audioContext = new AudioContext();
-	try {
-		const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-		return audioBuffer.duration;
-	} finally {
-		await audioContext.close();
-	}
-}
-
+/**
+ * Validates format and size only. Duration is checked after decode in App.tsx
+ * to avoid creating a duplicate AudioContext.
+ */
 export const fileValidator: FileValidator = {
 	async validate(
 		file: File,
@@ -45,26 +41,6 @@ export const fileValidator: FileValidator = {
 				valid: false,
 				reason: "file_too_large",
 				message: "This file is too large. The maximum file size is 50 MB.",
-			};
-		}
-
-		const duration = await getAudioDuration(file);
-
-		if (duration < constraints.minDurationSeconds) {
-			return {
-				valid: false,
-				reason: "duration_too_short",
-				message:
-					"This recording is too short to analyze. Please upload a recording that is at least 1 second long.",
-			};
-		}
-
-		if (duration > constraints.maxDurationSeconds) {
-			return {
-				valid: false,
-				reason: "duration_too_long",
-				message:
-					"This recording exceeds the 10-minute maximum. Please upload a shorter recording.",
 			};
 		}
 

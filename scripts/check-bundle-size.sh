@@ -11,7 +11,7 @@ fi
 
 # Calculate total gzipped size of JS and CSS files
 total_bytes=0
-for file in $(find "$DIST_DIR" -name "*.js" -o -name "*.css"); do
+for file in $(find "$DIST_DIR" \( -name "*.js" -o -name "*.css" \)); do
   gzipped_size=$(gzip -c "$file" | wc -c)
   total_bytes=$((total_bytes + gzipped_size))
   echo "  $(basename "$file"): $((gzipped_size / 1024)) KB gzipped"
