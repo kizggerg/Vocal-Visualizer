@@ -8,7 +8,7 @@ Terraform configuration for the Vocal Visualizer frontend hosting on AWS. Suppor
 User --> CloudFront (HTTPS, security headers) --> S3 (private, OAC-only)
 ```
 
-Each environment (staging, prod) gets its own S3 bucket and CloudFront distribution. The OIDC provider and IAM role are shared.
+Each environment (staging, prod) gets its own S3 bucket, CloudFront distribution, and IAM role. The OIDC identity provider is a shared account-wide singleton created during bootstrap.
 
 - **S3 bucket**: Private static site storage with Block Public Access enabled on all four settings
 - **CloudFront distribution**: CDN with OAC to S3, HTTP-to-HTTPS redirect, security headers
@@ -41,11 +41,12 @@ Two environments roughly double the cost, but for a prototype with <10 users, mo
 
 - AWS CLI configured with credentials (either `~/.aws/credentials` profile or environment variables)
 - Terraform >= 1.5.0
-- Sufficient IAM permissions to create S3 buckets, CloudFront distributions, IAM roles, and DynamoDB tables
+- Sufficient IAM permissions to create S3 buckets, CloudFront distributions, IAM roles/OIDC providers, and DynamoDB tables
+- `openssl` (for OIDC thumbprint during bootstrap)
 
 ## Bootstrap (One-Time Setup)
 
-Before the first `terraform init`, create the S3 bucket and DynamoDB table for Terraform remote state.
+Before the first `terraform init`, run the bootstrap script to create shared infrastructure:
 
 ```bash
 cd infra
@@ -55,6 +56,23 @@ bash bootstrap.sh
 This creates:
 - S3 bucket `vocal-visualizer-tfstate` with versioning and encryption
 - DynamoDB table `vocal-visualizer-tfstate-lock` with pay-per-request billing
+- GitHub Actions OIDC identity provider (account-wide singleton)
+
+After bootstrap, apply Terraform for each environment and configure GitHub:
+
+```bash
+# 1. Apply staging
+make infra-init-staging
+make infra-apply-staging
+# Note the role ARN: terraform -chdir=infra output github_actions_role_arn
+
+# 2. Apply prod (re-init switches state)
+make infra-init-prod
+make infra-apply-prod
+# Note the role ARN: terraform -chdir=infra output github_actions_role_arn
+
+# 3. Create GitHub environments and set secrets (see CI/CD Deployment section)
+```
 
 ## Usage
 
@@ -127,13 +145,23 @@ Two workflows handle deployment:
 1. **`deploy-staging.yml`** — Runs automatically on merge to `main`. Runs `terraform apply` for staging, then deploys the app.
 2. **`promote-production.yml`** — Triggered manually via `workflow_dispatch`. Runs `terraform apply` for prod, then deploys the app.
 
-Both workflows read Terraform outputs directly — no manual secrets needed for bucket names or distribution IDs. The only required GitHub repository secret is:
+Both workflows read Terraform outputs directly — no manual secrets needed for bucket names or distribution IDs. Each GitHub environment needs its own role ARN since roles are per-environment:
 
-| Secret | Value | Source |
-|--------|-------|--------|
-| `AWS_DEPLOY_ROLE_ARN` | IAM role ARN for OIDC auth | `terraform output github_actions_role_arn` |
+| GitHub Environment | Secret | Source |
+|-------------------|--------|--------|
+| `staging` | `AWS_DEPLOY_ROLE_ARN` | `terraform output github_actions_role_arn` (after staging init+apply) |
+| `production` | `AWS_DEPLOY_ROLE_ARN` | `terraform output github_actions_role_arn` (after prod init+apply) |
 
-Configure this secret in both the `staging` and `production` GitHub environments.
+To set up:
+```bash
+# Create environments (requires repo admin)
+gh api repos/kizggerg/Vocal-Visualizer/environments/staging -X PUT
+gh api repos/kizggerg/Vocal-Visualizer/environments/production -X PUT
+
+# Set secrets (use the ARNs from terraform output)
+gh secret set AWS_DEPLOY_ROLE_ARN --env staging --body "<staging-role-arn>"
+gh secret set AWS_DEPLOY_ROLE_ARN --env production --body "<prod-role-arn>"
+```
 
 ## Security Controls
 
@@ -155,7 +183,7 @@ infra/
   variables.tf       # Input variables (including environment)
   s3.tf              # S3 bucket with public access block and OAC policy
   cloudfront.tf      # CloudFront distribution, OAC, security headers, SPA function
-  oidc.tf            # GitHub Actions OIDC provider, IAM role, and Terraform permissions
+  oidc.tf            # Per-env IAM role (references OIDC provider from bootstrap)
   outputs.tf         # Terraform outputs (bucket name, distribution ID, etc.)
   envs/
     staging.tfvars   # Staging environment variables

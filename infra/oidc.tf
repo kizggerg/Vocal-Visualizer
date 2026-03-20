@@ -1,26 +1,17 @@
-# GitHub Actions OIDC federation for AWS authentication
+# GitHub Actions OIDC — per-environment IAM role
 # Satisfies: SR-002 (OIDC, no long-lived keys), SR-003 (scoped IAM role)
 #
-# The OIDC provider and IAM role are shared across environments.
-# The deploy policy is scoped to the current environment's resources.
-# Terraform operational permissions allow the pipeline to manage infrastructure.
+# The OIDC identity provider is created once by bootstrap.sh (account-wide singleton).
+# Each environment creates its own IAM role with permissions scoped to its resources.
 
-# Dynamically fetch the TLS certificate thumbprint from GitHub's OIDC endpoint
-# so deployments don't break when GitHub rotates their certificate (F-003 fix).
-data "tls_certificate" "github" {
-  url = "https://token.actions.githubusercontent.com/.well-known/openid-configuration"
+# Look up the OIDC provider created during bootstrap
+data "aws_iam_openid_connect_provider" "github" {
+  url = "https://token.actions.githubusercontent.com"
 }
 
-# OIDC identity provider for GitHub Actions
-resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = [data.tls_certificate.github.certificates[0].sha1_fingerprint]
-}
-
-# IAM role that GitHub Actions assumes via OIDC
+# Per-environment IAM role that GitHub Actions assumes via OIDC
 resource "aws_iam_role" "github_actions" {
-  name = "${var.project_name}-github-actions"
+  name = "${var.project_name}-${var.environment}-github-actions"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -28,7 +19,7 @@ resource "aws_iam_role" "github_actions" {
       {
         Effect = "Allow"
         Principal = {
-          Federated = aws_iam_openid_connect_provider.github.arn
+          Federated = data.aws_iam_openid_connect_provider.github.arn
         }
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
@@ -82,7 +73,7 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
 # Terraform operational permissions — allow the pipeline to manage infrastructure
 # ADR-005: Pipeline executes terraform apply for both staging and production
 resource "aws_iam_role_policy" "github_actions_terraform" {
-  name = "${var.project_name}-terraform-policy"
+  name = "${var.project_name}-${var.environment}-terraform-policy"
   role = aws_iam_role.github_actions.id
 
   policy = jsonencode({
@@ -176,6 +167,7 @@ resource "aws_iam_role_policy" "github_actions_terraform" {
         Sid    = "TerraformIAMManagement"
         Effect = "Allow"
         Action = [
+          "iam:CreateRole",
           "iam:GetRole",
           "iam:GetRolePolicy",
           "iam:ListRolePolicies",

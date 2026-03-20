@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Bootstrap Terraform remote state backend.
+# Bootstrap Terraform remote state backend and GitHub Actions OIDC provider.
 # Run this ONCE before the first `terraform init`.
 #
 # Prerequisites:
-#   - AWS CLI configured with credentials that can create S3 buckets and DynamoDB tables
+#   - AWS CLI configured with credentials that can create S3 buckets, DynamoDB tables, and IAM OIDC providers
 #   - The AWS_REGION environment variable or default profile region set to us-east-1
 #
 # Usage:
@@ -13,8 +13,10 @@ set -euo pipefail
 
 BUCKET_NAME="vocal-visualizer-tfstate"
 TABLE_NAME="vocal-visualizer-tfstate-lock"
+OIDC_URL="https://token.actions.githubusercontent.com"
 REGION="${AWS_REGION:-us-east-1}"
 
+echo "=== Step 1/3: Terraform state bucket ==="
 echo "Creating Terraform state bucket: ${BUCKET_NAME}"
 if aws s3api head-bucket --bucket "${BUCKET_NAME}" 2>/dev/null; then
   echo "Bucket already exists, skipping creation."
@@ -41,6 +43,8 @@ else
   echo "State bucket created."
 fi
 
+echo ""
+echo "=== Step 2/3: DynamoDB lock table ==="
 echo "Creating DynamoDB lock table: ${TABLE_NAME}"
 if aws dynamodb describe-table --table-name "${TABLE_NAME}" --region "${REGION}" 2>/dev/null; then
   echo "Table already exists, skipping creation."
@@ -56,5 +60,42 @@ else
 fi
 
 echo ""
-echo "Bootstrap complete. You can now run:"
-echo "  cd infra && terraform init"
+echo "=== Step 3/3: GitHub Actions OIDC provider ==="
+# The OIDC identity provider is an account-wide singleton.
+# Per-environment Terraform configs reference it via data source.
+EXISTING_OIDC=$(aws iam list-open-id-connect-providers --query "OpenIDConnectProviderList[?ends_with(Arn, '/token.actions.githubusercontent.com')].Arn" --output text 2>/dev/null || true)
+if [ -n "${EXISTING_OIDC}" ]; then
+  echo "OIDC provider already exists: ${EXISTING_OIDC}"
+  echo "Skipping creation."
+else
+  # Fetch the TLS thumbprint for GitHub's OIDC endpoint
+  THUMBPRINT=$(openssl s_client -servername token.actions.githubusercontent.com \
+    -connect token.actions.githubusercontent.com:443 < /dev/null 2>/dev/null \
+    | openssl x509 -fingerprint -sha1 -noout 2>/dev/null \
+    | sed 's/sha1 Fingerprint=//;s/://g' \
+    | tr '[:upper:]' '[:lower:]')
+
+  if [ -z "${THUMBPRINT}" ]; then
+    echo "WARNING: Could not fetch TLS thumbprint. Using placeholder."
+    echo "You may need to update the OIDC provider thumbprint manually."
+    THUMBPRINT="0000000000000000000000000000000000000000"
+  fi
+
+  aws iam create-open-id-connect-provider \
+    --url "${OIDC_URL}" \
+    --client-id-list "sts.amazonaws.com" \
+    --thumbprint-list "${THUMBPRINT}"
+
+  echo "OIDC provider created."
+fi
+
+echo ""
+echo "Bootstrap complete. Next steps:"
+echo "  1. Initialize Terraform for staging:"
+echo "     cd infra && terraform init -backend-config=\"key=staging/terraform.tfstate\""
+echo "  2. Apply staging infrastructure:"
+echo "     terraform apply -var-file=envs/staging.tfvars"
+echo "  3. Note the role ARN from the output:"
+echo "     terraform output github_actions_role_arn"
+echo "  4. Set the role ARN as AWS_DEPLOY_ROLE_ARN in the GitHub 'staging' environment"
+echo "  5. Repeat steps 1-4 for prod (use -reconfigure on init)"
